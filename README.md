@@ -4,51 +4,62 @@ A map of fruit and nut trees, front-yard gardens and community gardens around Po
 can reach from the sidewalk. Visitors filter by what they want (plums, figs, hazelnuts…) and leave
 notes for each other: "owner says please pick", "ask first", "please leave it be", "ripe now".
 
-It is a static site: plain HTML/CSS/JS, no build step.
+It is a static site: plain HTML/CSS/JS, no build step. The map uses [MapLibre](https://maplibre.org)
+with a custom near-white style (`map-style.js`) on free [OpenFreeMap](https://openfreemap.org) tiles.
 
 ## Where the map data comes from
 
-| Layer | Source | How it gets there |
+| Layer | Source | Count |
 |---|---|---|
-| Street fruit & nut trees | City of Portland **Street Tree Inventory** (Urban Forestry, ~250,000 trees in the public right-of-way) | Loaded live in the visitor's browser for the area they're looking at, then filtered to edible species by `fruit-species.js` |
-| Community gardens | **Portland Parks & Recreation Community Gardens** open dataset | Loaded live in the browser |
-| Front-yard gardens, yard trees, anything else | **Neighbours** | Added with the "+ Add a spot" button |
+| Edible trees on streets, medians, parks and public land | City of Portland tree inventory (Urban Forestry) | 42,743 |
+| Community gardens | Portland Parks & Recreation Community Gardens | 62 |
+| Front-yard gardens, yard trees, anything else | Neighbours, with the "+ Add a spot" button | grows over time |
+
+The city data is pre-built into `data/` by `pipeline/build-directory.mjs`, so the site loads one
+file instead of querying the city's servers on every visit. **How the directory is built, what's
+left out, and how it can grow (OpenStreetMap, imagery, volunteers) is in
+[docs/directory-process.md](docs/directory-process.md).**
 
 ### Why not scan Google satellite imagery and photos?
 
-The app does **not** pull trees out of Google Maps imagery, and that's on purpose:
+- Google's terms don't allow extracting data from their satellite imagery or Street View.
+- From above, a plum tree and a flowering cherry look the same.
 
-- Google's terms don't allow scraping or analysing their satellite imagery or Street View to build
-  a dataset.
-- From above, a plum tree and an ornamental cherry look the same. Automated detection would fill
-  the map with wrong guesses.
-
-What it uses instead is better data: the city has already surveyed every street tree by species. Every spot also has
-**Street View** and **Satellite** links that open Google Maps at that location, so anyone can check
-a tree with their own eyes before walking over. Front-yard gardens aren't in any city dataset, so
-neighbours add those.
+So the app starts from trees the city has already identified on the ground. Every spot has a
+**Street View** link so a person can check it before walking over.
 
 ### Edible vs ornamental
 
-Portland's streets are full of flowering cherries and Callery pears that produce little or no
-fruit. `fruit-species.js` sorts every tree into:
+`fruit-species.js` sorts every species name (all 854 in the city inventory were checked):
 
-- **yes**: a fruiting variety (e.g. *Malus domestica*, *Ficus carica*, *Corylus colurna*)
-- **maybe**: fruits, but small, tart or irregular (crabapples, purple-leaf plums). Drawn faded.
-- **ornamental**: flowering cherries, Callery pears. Hidden unless "Ornamental varieties" is ticked.
+- **yes**: a fruiting variety (*Malus domestica*, *Ficus carica*, *Corylus colurna*…)
+- **maybe**: fruits, but small, tart, sparse or needs cooking (crabapples, cherry plums, hawthorn).
+  Drawn paler; "Hide trees that may not fruit well" removes them.
+- **ornamental**: flowering cherries, Callery pears. Not included.
+- **never**: poisonous or misleading names (horse chestnut, laurels, witch hazel, chestnut oak).
 
-Horse chestnut (*Aesculus*) is poisonous and is always excluded, even though "chestnut" is in its
-name. To change how a species is classified, edit `RULES` in `fruit-species.js`.
+Only types with at least 20 public trees in Portland get their own filter. Rarer ones are grouped
+as "Other edibles".
 
 ## Run it locally
 
-Any static file server works. From the top folder of this repository (the one with `index.html`):
+From the top folder of this repository (the one with `index.html`):
 
 ```bash
 python3 -m http.server 8000
 ```
 
 Then open http://localhost:8000. On Windows, use `python` instead of `python3`.
+
+## Refresh the tree data
+
+The city updates its inventory daily; refreshing monthly is plenty. Needs Node 20 or newer:
+
+```bash
+node pipeline/build-directory.mjs
+```
+
+Then commit the changed files in `data/`.
 
 ## Turn on shared notes (needed before going public)
 
@@ -70,34 +81,18 @@ On GitHub: **Settings → Pages → Build and deployment → Deploy from a branc
 `/ (root)`, and save. After a minute or two the site is live at
 `https://<your-username>.github.io/garden-map/`.
 
-## If a city data source stops loading
-
-The **Sources** section of the side panel shows a red dot for any layer that couldn't be reached.
-Open `config.js` and update the URL:
-
-- `sources.streetTrees`: an ArcGIS MapServer/FeatureServer **layer** URL (ends in `/<number>`).
-  Find the current one from the [Street Tree Inventory page](https://www.portland.gov/trees/get-involved/tree-inventory).
-  The app reads species from any field whose name contains *common*, *species*, *genus* or
-  *scientific*, so it copes with renamed columns.
-- `sources.communityGardens`: any URL that returns GeoJSON. Find it on the
-  [PortlandMaps open data hub](https://gis-pdx.opendata.arcgis.com/), item
-  `8ca244b0754544b0ada0151710c1d73a_216`.
-
 ## Files
 
 ```
-index.html          page layout
-styles.css          styling (light + dark, phone + desktop)
-config.js           data source URLs, Supabase keys, map start position
-fruit-species.js    which tree species count as edible, and their seasons
-storage.js          notes & spots: Supabase if configured, otherwise this browser
-app.js              the map, loading, filters, notes, adding spots
-supabase/schema.sql database tables and access rules
+index.html                  page layout
+styles.css                  styling (phone + desktop)
+map-style.js                the basemap's colours and which map layers are drawn
+config.js                   data file paths, Supabase keys, map start position
+fruit-species.js            which species count as edible, their groups, colours and seasons
+storage.js                  notes & spots: Supabase if configured, otherwise this browser
+app.js                      the map, filters, notes, adding spots
+data/                       the pre-built directory (trees, gardens, counts)
+pipeline/build-directory.mjs  rebuilds data/ from City of Portland open data
+docs/directory-process.md   how the directory is built and how it grows
+supabase/schema.sql         database tables and access rules
 ```
-
-## Ideas for later
-
-- A "report this note" button that sets `hidden` for review
-- A season filter ("what's ripe this month")
-- Import [Falling Fruit](https://fallingfruit.org) data for Portland, after checking its licence
-- Spam protection on Supabase (captcha or rate limit) once traffic grows

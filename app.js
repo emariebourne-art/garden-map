@@ -17,15 +17,7 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const thisMonth = new Date().getMonth();
 
-  // Look: ?look=field | clean | market (preview options; the chosen one becomes the default).
-  const LOOKS = {
-    field:  { fruit: "#c8553d", stone: "#8a3f74", berry: "#3f6fb0", nut: "#8a6a3b", garden: "#4f8a3c", cluster: "#c8553d" },
-    clean:  { fruit: "#e5484d", stone: "#8e4ec6", berry: "#3e63dd", nut: "#a16a2a", garden: "#30a46c", cluster: "#16181b" },
-    market: { fruit: "#ff5a36", stone: "#c2389b", berry: "#3b6cff", nut: "#b07a2a", garden: "#2f9e44", cluster: "#e2572b" },
-  };
-  const look = LOOKS[new URLSearchParams(location.search).get("look")] ? new URLSearchParams(location.search).get("look") : "field";
-  document.documentElement.dataset.look = look;
-  for (const g of Object.keys(GROUPS)) GROUPS[g].color = LOOKS[look][g];
+  const CLUSTER_COLOR = "#16181b";
 
   // ---------------------------------------------------------------- state
   const state = {
@@ -86,7 +78,7 @@
   // ---------------------------------------------------------------- map
   const map = new maplibregl.Map({
     container: "map",
-    style: window.growMapStyle(look),
+    style: window.growMapStyle(),
     center: CFG.center,
     zoom: CFG.zoom,
     maxBounds: [[-123.3, 45.2], [-122.1, 45.85]],
@@ -137,14 +129,14 @@
       id: "clusters", type: "circle", source: "trees", filter: ["has", "point_count"],
       paint: {
         "circle-color": "#fffaf0",
-        "circle-stroke-color": LOOKS[look].cluster, "circle-stroke-width": 1.5, "circle-stroke-opacity": 0.6,
+        "circle-stroke-color": CLUSTER_COLOR, "circle-stroke-width": 1.5, "circle-stroke-opacity": 0.6,
         "circle-radius": ["step", ["get", "point_count"], 12, 25, 15, 100, 19, 500, 24],
       },
     });
     map.addLayer({
       id: "cluster-count", type: "symbol", source: "trees", filter: ["has", "point_count"],
       layout: { "text-field": ["get", "point_count_abbreviated"], "text-font": ["Noto Sans Regular"], "text-size": 11 },
-      paint: { "text-color": LOOKS[look].cluster },
+      paint: { "text-color": CLUSTER_COLOR },
     });
 
     // Single trees: a ring for owner wishes / ripeness, then a dot coloured by group.
@@ -305,36 +297,6 @@
         </div></fieldset>`;
     }).join("");
   }
-  // "Market" look: one chip per group across the top; "More filters" opens the panel.
-  function buildChips() {
-    if (look !== "market") return;
-    const bar = document.createElement("nav");
-    bar.className = "chipbar";
-    bar.setAttribute("aria-label", "Quick filters");
-    bar.innerHTML = Object.entries(GROUPS).map(([g, info]) =>
-      `<button class="chip" data-chip="${g}" aria-pressed="true" style="--c:${info.color}">${esc(info.label)}</button>`).join("") +
-      `<button class="chip more" id="chip-more" aria-pressed="false">More filters</button>`;
-    document.body.appendChild(bar);
-    bar.addEventListener("click", (e) => {
-      const b = e.target.closest(".chip");
-      if (!b) return;
-      if (b.id === "chip-more") {
-        const open = $("panel").classList.toggle("open");
-        b.setAttribute("aria-pressed", String(open));
-        return;
-      }
-      const box = document.querySelector(`#type-filters [data-group="${b.dataset.chip}"]`);
-      if (!box) return;
-      box.checked = b.getAttribute("aria-pressed") !== "true";
-      box.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-  }
-  function syncChips() {
-    document.querySelectorAll(".chip[data-chip]").forEach((c) => {
-      const box = document.querySelector(`#type-filters [data-group="${c.dataset.chip}"]`);
-      c.setAttribute("aria-pressed", String(!!box && (box.checked || box.indeterminate)));
-    });
-  }
   function syncGroupBoxes() {
     document.querySelectorAll("#type-filters [data-group]").forEach((g) => {
       const boxes = [...g.closest("fieldset").querySelectorAll("[data-type]")];
@@ -342,7 +304,6 @@
       g.checked = on === boxes.length;
       g.indeterminate = on > 0 && on < boxes.length;
     });
-    syncChips();
   }
   $("type-filters").addEventListener("change", (e) => {
     const t = e.target;
@@ -582,7 +543,6 @@
     loadCommunity(),
   ]).then(async () => {
     buildFilters();
-    buildChips();
     await mapReady;
     addDataLayers();
     render();

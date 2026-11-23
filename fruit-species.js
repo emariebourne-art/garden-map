@@ -12,11 +12,11 @@
 (function (root) {
   // group: which heading the type sits under in the filter list, and its map colour.
   const GROUPS = {
-    fruit:  { label: "Tree fruit",            color: "#c8553d" },
-    stone:  { label: "Cherries & plums",      color: "#8a3f74" },
-    berry:  { label: "Berries & small fruit", color: "#3f6fb0" },
-    nut:    { label: "Nuts",                  color: "#8a6a3b" },
-    garden: { label: "Gardens",               color: "#4f8a3c" },
+    fruit:  { label: "Tree fruit",            color: "#e5484d" },
+    stone:  { label: "Cherries & plums",      color: "#8e4ec6" },
+    berry:  { label: "Berries & small fruit", color: "#3e63dd" },
+    nut:    { label: "Nuts",                  color: "#a16a2a" },
+    garden: { label: "Gardens",               color: "#30a46c" },
   };
 
   const TYPES = {

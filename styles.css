@@ -1,17 +1,16 @@
-/* Portland Grow Map. The base look is "Field Notes"; [data-look] blocks at the end restyle it. */
+/* Portland Grow Map: a clean, full-screen map with floating cards. */
 :root {
-  --bg: #f6f2e8;
-  --surface: #fffdf8;
-  --text: #2b2a24;
-  --muted: #6d6a5e;
-  --line: #e4ddcc;
-  --accent: #3f6a30;
+  --bg: #f4f5f6;
+  --surface: #ffffff;
+  --text: #16181b;
+  --muted: #6b7178;
+  --line: #e6e8eb;
+  --accent: #1f7a4d;
   --accent-text: #ffffff;
-  --radius: 10px;
+  --radius: 12px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --display: Georgia, "Iowan Old Style", "Times New Roman", serif;
-  --shadow: 0 6px 24px rgba(40, 35, 20, 0.16);
-  --panel-w: 300px;
+  --shadow: 0 8px 30px rgba(15, 20, 30, 0.14);
+  --panel-w: 290px;
   --top-h: 54px;
   --pick: #2f7a3a; --ask: #b7791f; --leave: #b23a3a; --ripe: #7b3fa0;
 }
@@ -19,7 +18,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body { font: 15px/1.45 var(--font); background: var(--bg); color: var(--text); }
-h1 { font: 600 20px/1 var(--display); margin: 0; flex: 1; letter-spacing: -0.01em; }
+h1 { font-size: 18px; font-weight: 700; line-height: 1; margin: 0; flex: 1; letter-spacing: -0.02em; }
 h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
 small, .muted { color: var(--muted); }
 .small { font-size: 13px; }
@@ -76,7 +75,7 @@ fieldset.group legend label { display: flex; gap: 7px; align-items: center; font
 }
 .sheet .close { position: absolute; top: 8px; right: 8px; }
 .sheet .kicker { font-size: 13px; font-weight: 600; margin-right: 30px; }
-.sheet h3 { margin: 4px 32px 4px 0; font: 600 21px/1.2 var(--display); }
+.sheet h3 { margin: 4px 32px 4px 0; font-size: 21px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
 .sheet .sub { color: var(--muted); font-size: 14px; }
 .badges { margin: 10px 0 4px; }
 .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; margin: 0 4px 4px 0; }
@@ -99,7 +98,7 @@ dialog {
   background: var(--surface); color: var(--text); box-shadow: var(--shadow);
 }
 dialog::backdrop { background: rgba(0, 0, 0, .35); }
-dialog h2 { font: 600 20px var(--display); text-transform: none; letter-spacing: 0; color: var(--text); }
+dialog h2 { font-size: 20px; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--text); }
 #spot-form { display: grid; gap: 10px; }
 #spot-form label { display: grid; gap: 4px; font-size: 14px; }
 .actions { display: flex; justify-content: flex-end; gap: 8px; }
@@ -118,58 +117,18 @@ dialog h2 { font: 600 20px var(--display); text-transform: none; letter-spacing:
 }
 @media (min-width: 761px) { #toggle-panel { display: none; } }
 
-/* ===================================================================== */
-/* Look B — "Clean": white, crisp, floating card instead of a sidebar.     */
-/* ===================================================================== */
-[data-look="clean"] {
-  --bg: #f4f5f6; --surface: #ffffff; --text: #16181b; --muted: #6b7178; --line: #e6e8eb;
-  --accent: #1f7a4d; --radius: 12px; --display: var(--font);
-  --shadow: 0 8px 30px rgba(15, 20, 30, 0.14);
-}
-[data-look="clean"] h1 { font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
-[data-look="clean"] .sheet h3 { font-weight: 700; letter-spacing: -0.01em; }
-@media (min-width: 761px) {
-  [data-look="clean"] .topbar { background: transparent; border: 0; pointer-events: none; }
-  [data-look="clean"] .topbar > * { pointer-events: auto; }
-  [data-look="clean"] .topbar h1 { background: var(--surface); padding: 10px 14px; border-radius: 12px; box-shadow: var(--shadow); flex: none; }
-  [data-look="clean"] .topbar #add-spot { margin-left: auto; box-shadow: var(--shadow); }
-  [data-look="clean"] #map { top: 0; left: 0; }
-  [data-look="clean"] .panel {
-    top: calc(var(--top-h) + 8px); left: 14px; bottom: auto; max-height: calc(100% - var(--top-h) - 60px);
-    border: 0; border-radius: 14px; box-shadow: var(--shadow); width: 290px;
-  }
-  [data-look="clean"] .maplibregl-ctrl-top-left { left: 310px; top: 8px; }
-  [data-look="clean"] .hint { left: 50%; }
-}
 
-/* ===================================================================== */
-/* Look C — "Market": bold and friendly, fruit chips across the top.       */
-/* ===================================================================== */
-[data-look="market"] {
-  --bg: #fff8ee; --surface: #ffffff; --text: #1d1b16; --muted: #6f675a; --line: #f0e3cc;
-  --accent: #e2572b; --radius: 14px; --display: var(--font);
-  --shadow: 0 6px 22px rgba(80, 40, 10, 0.16);
+/* Desktop: full-screen map; title, filters and details float over it as cards. */
+@media (min-width: 761px) {
+  .topbar { background: transparent; border: 0; pointer-events: none; }
+  .topbar > * { pointer-events: auto; }
+  .topbar h1 { background: var(--surface); padding: 10px 14px; border-radius: var(--radius); box-shadow: var(--shadow); flex: none; }
+  .topbar #add-spot { margin-left: auto; box-shadow: var(--shadow); }
+  #map { top: 0; left: 0; }
+  .panel {
+    top: calc(var(--top-h) + 8px); left: 14px; bottom: auto; max-height: calc(100% - var(--top-h) - 60px);
+    border: 0; border-radius: 14px; box-shadow: var(--shadow);
+  }
+  .maplibregl-ctrl-top-left { left: calc(var(--panel-w) + 20px); top: 8px; }
+  .hint { left: 50%; }
 }
-[data-look="market"] h1 { font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
-[data-look="market"] .sheet h3 { font-weight: 800; }
-[data-look="market"] .chipbar {
-  position: fixed; top: var(--top-h); left: 0; right: 0; z-index: 12; display: flex; gap: 8px;
-  padding: 10px 14px; overflow-x: auto; background: var(--surface); border-bottom: 1px solid var(--line);
-  scrollbar-width: none;
-}
-[data-look="market"] .chip {
-  flex: none; display: flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px;
-  border: 2px solid var(--c); background: var(--c); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
-}
-[data-look="market"] .chip[aria-pressed="false"] { background: transparent; color: var(--c); }
-[data-look="market"] .chip.more { --c: #3a362e; }
-[data-look="market"] { --chip-h: 58px; }
-[data-look="market"] #map { top: calc(var(--top-h) + var(--chip-h)); left: 0; }
-[data-look="market"] .panel { top: calc(var(--top-h) + var(--chip-h)); transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow); }
-[data-look="market"] .panel.open { transform: none; }
-[data-look="market"] #toggle-panel { display: none; }
-[data-look="market"] .sheet { top: calc(var(--top-h) + var(--chip-h) + 12px); }
-[data-look="market"] .hint { left: 50%; top: calc(var(--top-h) + var(--chip-h) + 12px); }
-@media (max-width: 760px) { [data-look="market"] .sheet { top: auto; } }
-.chipbar { display: none; }
-[data-look="market"] .chipbar { display: flex; }

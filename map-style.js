@@ -1,35 +1,21 @@
-// The "Grow" basemap: a quiet, paper-like map so the trees are the loudest thing on it.
+// The basemap: a quiet, near-white map so the trees are the loudest thing on it.
 // Vector tiles from OpenFreeMap (free, no key, OpenStreetMap data). Only a handful of
 // layers are drawn: land, parks, water, streets, faint buildings, and a few labels.
 
 (function () {
-  const PALETTES = {
-    // Warm paper, like a field guide.
-    field: {
-      land: "#f3efe4", landDark: "#ebe5d6", park: "#dfe5cc", wood: "#d5dec0", water: "#c5d8dc", waterLine: "#b4cbd0",
-      road: "#ffffff", roadCase: "#e2dccd", major: "#fbf6ea", majorCase: "#d9cfb9", building: "#e7e0cf",
-      label: "#6f6a5c", labelHalo: "#f3efe4", waterLabel: "#6e8f97",
-    },
-    // Near-white and neutral grey, so colour only comes from the trees.
-    clean: {
-      land: "#f6f6f4", landDark: "#f0f0ee", park: "#e4eee1", wood: "#dde9da", water: "#d3e3ee", waterLine: "#c3d6e4",
-      road: "#ffffff", roadCase: "#e3e4e6", major: "#ffffff", majorCase: "#d5d7da", building: "#ececea",
-      label: "#7a7f86", labelHalo: "#f6f6f4", waterLabel: "#6d8ea8",
-    },
-    // Sunny and warm, a farmers'-market feel.
-    market: {
-      land: "#fff5e6", landDark: "#fcecd6", park: "#e5efc9", wood: "#dbe8bc", water: "#cbe6ef", waterLine: "#b5dae6",
-      road: "#ffffff", roadCase: "#f1dcbd", major: "#fffaf2", majorCase: "#ebcfa6", building: "#f7e6cc",
-      label: "#8a7860", labelHalo: "#fff5e6", waterLabel: "#5f98ab",
-    },
+  // Near-white and neutral grey, so the only colour on the map comes from the trees.
+  const C = {
+    land: "#f6f6f4", landDark: "#f0f0ee", park: "#e4eee1", wood: "#dde9da", water: "#d3e3ee", waterLine: "#c3d6e4",
+    road: "#ffffff", roadCase: "#e3e4e6", major: "#ffffff", majorCase: "#d5d7da", building: "#ececea",
+    label: "#7a7f86", labelHalo: "#f6f6f4", waterLabel: "#6d8ea8",
   };
+
 
 
   const roadWidth = (base, extra = 0) =>
     ["interpolate", ["exponential", 1.6], ["zoom"], 11, base * 0.4 + extra, 14, base + extra, 18, base * 6 + extra];
 
-  window.growMapStyle = function (look) {
-    const C = PALETTES[look] || PALETTES.field;
+  window.growMapStyle = function () {
     return {
       version: 8,
       name: "Grow",
