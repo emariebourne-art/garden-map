@@ -45,6 +45,11 @@
       const row = { ...note, id: uuid(), created_at: new Date().toISOString() };
       mem.notes.push(row); lsSave(mem); return row;
     },
+    async listReports() { return (mem.reports || []).slice(); },
+    async addReport(r) {
+      const row = { ...r, id: uuid(), created_at: new Date().toISOString() };
+      (mem.reports ||= []).push(row); lsSave(mem); return row;
+    },
   };
 
   // ---------------- Supabase (PostgREST over fetch, no SDK) -----------------
@@ -79,7 +84,48 @@
       });
       return rows[0];
     },
+
+    listReports: () =>
+      rest("/spot_reports?select=spot_id,kind,corrected_type,created_at&order=created_at.asc&limit=50000"),
+    async addReport(r) {
+      const rows = await rest("/spot_reports", {
+        method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(r),
+      });
+      return rows[0];
+    },
+
+    // Photos: read straight from the database; uploads go through the upload-photo
+    // Edge Function, which checks each image before anything is stored.
+    photos: true,
+    photoUrl: (path) => cfg.url.replace(/\/$/, "") + "/storage/v1/object/public/photos/" + path,
+    listPhotos: (spotId) =>
+      rest("/photos?select=id,path,caption,author,created_at&spot_id=eq." + encodeURIComponent(spotId) +
+        "&order=created_at.desc&limit=50"),
+    async uploadPhoto(spotId, jpegBlob, { caption, author } = {}) {
+      const form = new FormData();
+      form.append("spot_id", spotId);
+      form.append("photo", jpegBlob, "photo.jpg");
+      if (caption) form.append("caption", caption);
+      if (author) form.append("author", author);
+      const res = await fetch(cfg.url.replace(/\/$/, "") + "/functions/v1/upload-photo", {
+        method: "POST",
+        headers: { apikey: cfg.anonKey, Authorization: "Bearer " + cfg.anonKey },
+        body: form,
+      });
+      let body = {};
+      try { body = await res.json(); } catch { /* not JSON */ }
+      if (!res.ok) {
+        const err = new Error(body.error || "Upload failed (" + res.status + ").");
+        err.rejected = Boolean(body.rejected);
+        throw err;
+      }
+      return body.photo;
+    },
+    reportPhoto: (photoId, reason) =>
+      rest("/photo_reports", { method: "POST", body: JSON.stringify({ photo_id: photoId, reason: reason || null }) }),
   };
+
+  local.photos = false; // photos need the shared database and the checking function
 
   window.GROW_STORE = shared ? remote : local;
 })();

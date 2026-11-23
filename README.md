@@ -75,6 +75,76 @@ The anon key is meant to be public. The database rules in `schema.sql` let visit
 rows, but not edit or delete them. To remove spam or a note that names someone, open the row in
 Supabase's Table Editor and set `hidden` to `true`.
 
+## Turn on photos (after shared notes)
+
+Visitors can add photos to any tree or garden. **Every photo is checked by Claude before it is
+stored**; anything that fails is never saved. Photos are rejected if they show:
+
+- sexual content, violence, hate symbols, drug use or offensive text
+- a recognisable face, or private details: a readable house number, licence plate, street address,
+  name or mail (this map is about trees, not the people who live behind them)
+- something that isn't a plant, tree, fruit, nut or garden, or is too blurry to tell
+
+The person uploading sees a short reason ("Please crop out the house number and try again").
+
+Other protections:
+- **Location data is removed.** Phone photos carry hidden GPS coordinates. The browser shrinks
+  each photo and re-saves it without them, and the server strips them again in case.
+- **No way around the check.** Visitors can't write to the photos table or storage directly;
+  only the checking function can.
+- **If the check can't run, the photo is rejected,** with a "try again later" message.
+- **Reports:** a photo with two reports is hidden until you look at it.
+- **Rate limit:** 12 photo attempts per visitor per hour.
+
+Setup (needs the [Supabase CLI](https://supabase.com/docs/guides/cli) and an
+[Anthropic API key](https://platform.claude.com/settings/keys)):
+
+1. Re-run `supabase/schema.sql` in the SQL Editor. It adds the photo tables and the `photos` bucket.
+2. From this folder:
+
+```bash
+supabase link --project-ref <your-project-ref>
+```
+
+```bash
+supabase secrets set ANTHROPIC_API_KEY=<your key>
+```
+
+```bash
+supabase functions deploy upload-photo
+```
+
+**Cost:** about 1¢ per photo checked, using Claude Opus 5.5. To pay less, change `MODEL` in
+`supabase/functions/upload-photo/index.ts` to `claude-haiku-5-5` (a small fraction of a cent).
+It's less careful with borderline photos, so try a few before switching.
+
+**To remove a photo:** in Supabase's Table Editor, set `hidden` to `true` on its row in `photos`.
+To bring back a photo that was hidden by reports, set it to `false`.
+
+To run the function's tests (no API key needed; [Deno](https://deno.com) required):
+
+```bash
+deno test supabase/functions/upload-photo/
+```
+
+## Fixing the map: gone trees and wrong labels
+
+City records go out of date: trees get cut down, replaced, or were logged as the wrong species.
+Every pin has an **Is this right?** section:
+
+| Button | What happens |
+|---|---|
+| **Gone or cut down** | 2 reports → hidden from the map |
+| **Not a …** (pick the right kind, or "not a fruit or nut tree") | 2 votes for the same kind → relabelled; 2 "not a fruit tree" → hidden |
+| **Can't reach it from the sidewalk** | 2 reports → hidden |
+| **✓ Still here** | Cancels the problem reports made before it |
+
+A single report never hides anything; it shows as a grey ring on the pin. Hidden trees can be
+seen again with **Show trees reported gone**, so someone can confirm them. To undo a bad-faith
+report, set `hidden` to `true` on its row in `spot_reports`.
+
+Reports are stored separately from the city data, so they survive when you refresh `data/`.
+
 ## Publish it with GitHub Pages
 
 On GitHub: **Settings → Pages → Build and deployment → Deploy from a branch**, choose `main` and
@@ -89,10 +159,11 @@ styles.css                  styling (phone + desktop)
 map-style.js                the basemap's colours and which map layers are drawn
 config.js                   data file paths, Supabase keys, map start position
 fruit-species.js            which species count as edible, their groups, colours and seasons
-storage.js                  notes & spots: Supabase if configured, otherwise this browser
+storage.js                  notes, spots, reports, photos: Supabase if configured, otherwise this browser
 app.js                      the map, filters, notes, adding spots
 data/                       the pre-built directory (trees, gardens, counts)
 pipeline/build-directory.mjs  rebuilds data/ from City of Portland open data
 docs/directory-process.md   how the directory is built and how it grows
 supabase/schema.sql         database tables and access rules
+supabase/functions/upload-photo/  the photo checker (Claude) and its tests
 ```

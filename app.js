@@ -12,7 +12,7 @@
     ripe: "Ripe now",
     info: "Note",
   };
-  const STATUS_COLOR = { pick: "#2f7a3a", ask: "#d09020", leave: "#b23a3a", ripe: "#7b3fa0" };
+  const STATUS_COLOR = { pick: "#2f7a3a", ask: "#d09020", leave: "#b23a3a", ripe: "#7b3fa0", report: "#9aa0a6", gone: "#3a3d41" };
   const RIPE_DAYS = 21;
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const thisMonth = new Date().getMonth();
@@ -28,6 +28,9 @@
     features: new Map(),   // id -> record {id, kind, source, type, fruiting, lng, lat, name, ...}
     wishes: new Map(),     // id -> latest owner wish {status, at}
     ripe: new Map(),       // id -> latest "ripe" note time
+    reports: new Map(),    // id -> [{kind, corrected_type, created_at}] corrections from neighbours
+    review: new Map(),     // id -> summary of those reports (see reviewOf)
+    showGone: false,
     counts: {},
     adding: false,
     openId: null,
@@ -67,7 +70,46 @@
       if (!cur || cur < t) state.ripe.set(n.spot_id, t);
     }
   }
+  // ---------------------------------------------------------------- corrections from neighbours
+  // A "still here" report cancels every problem report made before it. After that:
+  //   2+ say gone / can't reach / not an edible tree  → hidden from the map
+  //   2+ name the same right type                     → the tree is relabelled
+  //   a single report                                 → shown on the pin and in the details, nothing hidden
+  const NEEDED = 2;
+  function recordReport(r) {
+    const list = state.reports.get(r.spot_id) || [];
+    list.push(r);
+    state.reports.set(r.spot_id, list);
+    state.review.delete(r.spot_id);
+  }
+  function reviewOf(id) {
+    if (state.review.has(id)) return state.review.get(id);
+    const all = (state.reports.get(id) || []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
+    let lastConfirmed = null, open = [];
+    for (const r of all) {
+      if (r.kind === "still_here") { lastConfirmed = r.created_at; open = []; } else open.push(r);
+    }
+    const gone = open.filter((r) => r.kind === "gone" || (r.kind === "wrong_type" && r.corrected_type === "none")).length;
+    const unreachable = open.filter((r) => r.kind === "unreachable").length;
+    const votes = {};
+    for (const r of open) if (r.kind === "wrong_type" && r.corrected_type && r.corrected_type !== "none")
+      votes[r.corrected_type] = (votes[r.corrected_type] || 0) + 1;
+    const [topType, topVotes] = Object.entries(votes).sort((a, b) => b[1] - a[1])[0] || [null, 0];
+    const v = {
+      gone, unreachable, votes, lastConfirmed,
+      removed: gone >= NEEDED || unreachable >= NEEDED || gone + unreachable >= NEEDED + 1,
+      type: topVotes >= NEEDED && TYPES[topType] ? topType : null,
+      open: open.length,
+    };
+    state.review.set(id, v);
+    return v;
+  }
+  const typeOf = (f) => (f.kind === "tree" && reviewOf(f.id).type) || f.type;
+
   function ringStatus(id) {
+    const rv = reviewOf(id);
+    if (rv.removed) return "gone";
+    if (rv.open && !rv.type) return "report";
     const w = state.wishes.get(id)?.status;
     if (w === "leave") return "leave";
     const r = state.ripe.get(id);
@@ -208,9 +250,11 @@
 
   // ---------------------------------------------------------------- filtering & drawing
   function visible(f) {
-    if (!state.types.has(f.type)) return false;
+    if (reviewOf(f.id).removed && !state.showGone) return false;
+    const type = typeOf(f);
+    if (!state.types.has(type)) return false;
     if (f.kind === "tree") {
-      if (state.onlySeason && !inSeason(f.type)) return false;
+      if (state.onlySeason && !inSeason(type)) return false;
       if (state.onlySure && f.fruiting !== "yes") return false;
     }
     if (state.onlyPick && state.wishes.get(f.id)?.status !== "pick") return false;
@@ -228,9 +272,10 @@
       for (const f of state.features.values()) {
         if (!visible(f)) continue;
         const ws = ringStatus(f.id);
+        const type = typeOf(f);
         const props = {
-          id: f.id, g: TYPES[f.type]?.group || "berry", f: f.fruiting === "yes" ? 1 : 0,
-          label: f.kind === "tree" ? (TYPES[f.type]?.label || "") : f.name, src: f.source,
+          id: f.id, g: TYPES[type]?.group || "berry", f: f.fruiting === "yes" && ws !== "gone" ? 1 : 0,
+          label: f.kind === "tree" ? (TYPES[type]?.label || "") : f.name, src: f.source,
           ...(ws ? { ws } : {}),
         };
         (f.kind === "tree" ? trees : gardens).push({
@@ -276,9 +321,10 @@
 
   async function loadCommunity() {
     try {
-      const [spots, notes] = await Promise.all([store.listSpots(), store.listNoteSummaries()]);
+      const [spots, notes, reports] = await Promise.all([store.listSpots(), store.listNoteSummaries(), store.listReports()]);
       for (const s of spots) addCommunitySpot(s);
       for (const n of notes) recordNote(n);
+      for (const r of reports) recordReport(r);
     } catch (e) {
       console.warn(e);
       $("storage-mode").textContent = "Shared notes couldn’t be loaded: " + e.message;
@@ -347,6 +393,7 @@
   bind("only-season", "onlySeason");
   bind("only-pick", "onlyPick");
   bind("only-sure", "onlySure");
+  bind("show-gone", "showGone");
   $("season-month").textContent = "(" + new Date().toLocaleDateString(undefined, { month: "long" }) + ")";
 
   $("toggle-panel").onclick = () => {
@@ -379,7 +426,8 @@
     const f = state.features.get(id);
     if (!f) return;
     state.openId = id;
-    const t = TYPES[f.type] || TYPES.other;
+    const t = TYPES[typeOf(f)] || TYPES.other;
+    const rv = reviewOf(id);
     const ll = `${f.lat.toFixed(6)},${f.lng.toFixed(6)}`;
     const wish = state.wishes.get(id);
     const ripe = ringStatus(id) === "ripe" ? state.ripe.get(id) : null;
@@ -416,6 +464,25 @@
         <a target="_blank" rel="noopener" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${ll}">Street View</a>
         <a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=walking">Walking directions</a>
       </div>
+      ${reviewHtml(f, rv)}
+      <h2>Photos</h2>
+      <div class="photos" id="photos"></div>
+      ${store.photos ? `
+        <div class="photo-add" id="photo-add">
+          <label class="btn small photo-pick">📷 Add a photo
+            <input type="file" accept="image/*" id="photo-input" hidden></label>
+          <small class="muted">Plants only, please: no faces, house numbers or licence plates.</small>
+        </div>
+        <form class="photo-form" id="photo-form" hidden>
+          <img id="photo-preview" alt="Your photo, ready to post">
+          <input name="caption" maxlength="140" placeholder="Caption (optional)" aria-label="Caption">
+          <div class="actions">
+            <button type="button" class="btn" id="photo-cancel">Cancel</button>
+            <button class="btn primary">Post photo</button>
+          </div>
+        </form>
+        <p class="photo-status small" id="photo-status" role="status"></p>`
+        : `<p class="muted small">Photos can be added once the shared database is set up.</p>`}
       <h2>Notes from neighbours</h2>
       <ul class="notes" id="notes"><li class="muted">Loading…</li></ul>
       <form class="note-form" id="note-form">
@@ -439,6 +506,9 @@
     try { form.author.value = localStorage.getItem("pdx-grow-nick") || ""; } catch {}
     form.addEventListener("submit", (e) => submitNote(e, id));
     loadNotes(id);
+    loadPhotos(id);
+    wireReview(f);
+    if (store.photos) wirePhotoForm(id);
 
     // On phones the sheet covers the bottom of the map: keep the chosen spot visible above it.
     const sheetH = window.innerWidth <= 760 ? $("detail").offsetHeight : 0;
@@ -484,6 +554,171 @@
       alert("Couldn’t save the note: " + err.message);
       btn.disabled = false;
     }
+  }
+
+  // ---------------------------------------------------------------- "Is this right?"
+  function reviewHtml(f, rv) {
+    const thing = f.kind === "tree" ? "tree" : "garden";
+    const lines = [];
+    if (rv.removed) lines.push(`<b>Hidden from the map:</b> neighbours say this ${thing} is ${rv.unreachable >= rv.gone ? "can’t be reached from the sidewalk" : "gone"}. If it’s still there, say so below.`);
+    else {
+      if (rv.gone) lines.push(`${rv.gone} neighbour${rv.gone > 1 ? "s say" : " says"} this ${thing} is gone.`);
+      if (rv.unreachable) lines.push(`${rv.unreachable} neighbour${rv.unreachable > 1 ? "s say" : " says"} it can’t be reached from the sidewalk.`);
+    }
+    if (rv.type && rv.type !== f.type) lines.push(`Relabelled by neighbours: the city lists it as ${esc(TYPES[f.type]?.label || f.name)}.`);
+    for (const [k, n] of Object.entries(rv.votes)) if (k !== rv.type)
+      lines.push(`${n} neighbour${n > 1 ? "s think" : " thinks"} it’s actually ${esc(TYPES[k]?.label || k)}.`);
+    if (!lines.length && rv.lastConfirmed) lines.push(`A neighbour confirmed it’s here ${ago(rv.lastConfirmed)}.`);
+
+    const typeOptions = Object.entries(TYPES).filter(([k, t]) => t.group !== "garden" && k !== typeOf(f))
+      .map(([k, t]) => `<option value="${k}">${esc(t.label)}</option>`).join("");
+    return `
+      <section class="review">
+        <h2>Is this right?</h2>
+        ${lines.length ? `<p class="review-state small">${lines.join("<br>")}</p>` : ""}
+        <div class="review-buttons" id="review-buttons">
+          <button class="btn small" data-kind="still_here">✓ Still here</button>
+          <button class="btn small" data-kind="gone">Gone or cut down</button>
+          ${f.kind === "tree" ? `<button class="btn small" data-kind="wrong_type">Not a ${esc((TYPES[typeOf(f)]?.label || "this").toLowerCase())}</button>` : ""}
+          <button class="btn small" data-kind="unreachable">Can’t reach it from the sidewalk</button>
+        </div>
+        <form class="review-type" id="review-type" hidden>
+          <label class="small">What is it?
+            <select name="corrected">
+              <option value="">Choose…</option>
+              ${typeOptions}
+              <option value="none">Not a fruit or nut tree</option>
+            </select></label>
+          <div class="actions"><button type="button" class="btn small" id="review-type-cancel">Cancel</button>
+            <button class="btn small primary">Send</button></div>
+        </form>
+        <p class="review-done small" id="review-done" role="status"></p>
+      </section>`;
+  }
+
+  function wireReview(f) {
+    const done = $("review-done");
+    const send = async (kind, corrected_type = null) => {
+      $("review-buttons").querySelectorAll("button").forEach((b) => { b.disabled = true; });
+      try {
+        recordReport(await store.addReport({ spot_id: f.id, kind, corrected_type }));
+        render();
+        openDetail(f.id);
+        $("review-done").textContent = kind === "still_here"
+          ? "Thanks for confirming!"
+          : "Thanks! When a second neighbour says the same, the map updates.";
+      } catch (err) {
+        done.textContent = "Couldn’t send that: " + err.message;
+        $("review-buttons").querySelectorAll("button").forEach((b) => { b.disabled = false; });
+      }
+    };
+    $("review-buttons").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-kind]");
+      if (!b) return;
+      if (b.dataset.kind === "wrong_type") { $("review-type").hidden = false; $("review-buttons").hidden = true; return; }
+      send(b.dataset.kind);
+    });
+    $("review-type-cancel").onclick = () => { $("review-type").hidden = true; $("review-buttons").hidden = false; };
+    $("review-type").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const v = e.target.corrected.value;
+      if (v) send("wrong_type", v);
+    });
+  }
+
+  // ---------------------------------------------------------------- photos
+  async function loadPhotos(id) {
+    const box = $("photos");
+    if (!store.photos) { box.innerHTML = ""; return; }
+    try {
+      const photos = await store.listPhotos(id);
+      if (state.openId !== id) return;
+      box.innerHTML = photos.map((p) => `
+        <figure>
+          <a href="${esc(store.photoUrl(p.path))}" target="_blank" rel="noopener">
+            <img src="${esc(store.photoUrl(p.path))}" alt="${esc(p.caption || "Photo from a neighbour")}" loading="lazy"></a>
+          <figcaption>${p.caption ? esc(p.caption) + " · " : ""}${esc(p.author || "Anonymous")}, ${ago(p.created_at)}
+            <button class="link report" data-photo="${esc(p.id)}">Report</button></figcaption>
+        </figure>`).join("");
+    } catch (e) {
+      box.innerHTML = `<p class="muted small">Couldn’t load photos: ${esc(e.message)}</p>`;
+    }
+  }
+
+  // Shrink the photo to at most 1600px and re-encode it as JPEG in the browser. Drawing it to a
+  // canvas also throws away the hidden EXIF data phones add, including the GPS location.
+  async function prepareJpeg(file) {
+    let bmp;
+    try {
+      bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    } catch {
+      throw new Error("This browser can’t read that photo’s format. Try a JPEG or PNG.");
+    }
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    bmp.close?.();
+    return new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn’t prepare the photo."))), "image/jpeg", 0.85));
+  }
+
+  function wirePhotoForm(id) {
+    const input = $("photo-input"), form = $("photo-form"), status = $("photo-status");
+    let blob = null, previewUrl = null;
+    const reset = () => {
+      form.hidden = true; $("photo-add").hidden = false; blob = null;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = null; input.value = ""; form.caption.value = "";
+    };
+    input.addEventListener("change", async () => {
+      const file = input.files[0];
+      if (!file) return;
+      status.className = "photo-status small"; status.textContent = "";
+      try {
+        blob = await prepareJpeg(file);
+      } catch (e) {
+        status.className = "photo-status small bad"; status.textContent = e.message;
+        input.value = "";
+        return;
+      }
+      previewUrl = URL.createObjectURL(blob);
+      $("photo-preview").src = previewUrl;
+      $("photo-add").hidden = true;
+      form.hidden = false;
+    });
+    $("photo-cancel").onclick = reset;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!blob) return;
+      const btn = form.querySelector("button.primary");
+      btn.disabled = true;
+      status.className = "photo-status small"; status.textContent = "Checking your photo…";
+      let author = null;
+      try { author = localStorage.getItem("pdx-grow-nick") || null; } catch {}
+      try {
+        await store.uploadPhoto(id, blob, { caption: form.caption.value.trim(), author });
+        if (state.openId !== id) return;
+        reset();
+        status.className = "photo-status small good"; status.textContent = "Thanks! Your photo is up.";
+        loadPhotos(id);
+      } catch (err) {
+        if (state.openId !== id) return;
+        status.className = "photo-status small bad";
+        status.textContent = (err.rejected ? "Not posted: " : "") + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    $("photos").addEventListener("click", async (e) => {
+      const b = e.target.closest("button.report");
+      if (!b || b.disabled) return;
+      if (!confirm("Report this photo as inappropriate? Photos with two reports are hidden until a moderator checks them.")) return;
+      b.disabled = true;
+      try { await store.reportPhoto(b.dataset.photo); b.textContent = "Reported"; }
+      catch (err) { b.disabled = false; alert("Couldn’t send the report: " + err.message); }
+    });
   }
 
   function closeDetail() {

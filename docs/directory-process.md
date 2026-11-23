@@ -96,13 +96,14 @@ after the notes database is live and people are using the map, not before.
 
 - **+ Add a spot** for front-yard gardens and trees the city doesn't list
 - Notes: *owner says pick / ask first / leave it be / ripe now*
-- Next: a "this tree is gone" or "this isn't a fruit tree" button that hides a pin after two
-  reports, so the directory corrects itself.
+- **Is this right?** on every pin: *gone*, *not a …*, *can't reach it*, *still here*. Two
+  matching reports hide or relabel a pin, so the directory corrects itself (see README).
+- Photos, each checked by Claude before it's stored.
 
 ## Order of work
 
 1. ✅ City trees and gardens
 2. Turn on shared notes (Supabase); without it nobody sees anyone else's additions
 3. OpenStreetMap orchards and gardens
-4. "Report a problem" on pins
+4. ✅ "Is this right?" corrections on pins
 5. Imagery candidates and volunteer checking, only if the map has an active community by then
