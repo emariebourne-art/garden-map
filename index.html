@@ -6,7 +6,7 @@
   <title>Portland Grow Map</title>
   <meta name="description" content="Find street-side fruit and nut trees, front-yard gardens and community gardens in Portland, and leave notes for fellow foragers.">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
   <header class="topbar">
@@ -50,6 +50,7 @@
   </aside>
 
   <main id="map" aria-label="Map"></main>
+  <div id="map-error" class="map-error" hidden></div>
   <div class="map-buttons">
     <button id="locate" class="btn small" title="Show where I am">◎ Near me</button>
     <button id="satellite" class="btn small" aria-pressed="false">Satellite</button>
@@ -97,10 +98,10 @@
   </dialog>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="config.js"></script>
-  <script src="fruit-species.js"></script>
-  <script src="map-style.js"></script>
-  <script src="storage.js"></script>
-  <script src="app.js"></script>
+  <script src="config.js?v=3"></script>
+  <script src="fruit-species.js?v=3"></script>
+  <script src="map-style.js?v=3"></script>
+  <script src="storage.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

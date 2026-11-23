@@ -76,14 +76,31 @@
   }
 
   // ---------------------------------------------------------------- map
-  const map = new maplibregl.Map({
-    container: "map",
-    style: window.growMapStyle(),
-    center: CFG.center,
-    zoom: CFG.zoom,
-    maxBounds: [[-123.3, 45.2], [-122.1, 45.85]],
-    attributionControl: false,
-  });
+  function showMapError(html) {
+    $("map-error").innerHTML = html;
+    $("map-error").hidden = false;
+  }
+  if (!window.maplibregl) {
+    showMapError("<b>The map couldn’t load.</b> The map library didn’t download. Check your connection, " +
+      "or turn off any content blocker for this site, then reload.");
+    throw new Error("maplibre-gl did not load");
+  }
+  let map;
+  try {
+    map = new maplibregl.Map({
+      container: "map",
+      style: window.growMapStyle(),
+      center: CFG.center,
+      zoom: CFG.zoom,
+      maxBounds: [[-123.3, 45.2], [-122.1, 45.85]],
+      attributionControl: false,
+    });
+  } catch (e) {
+    showMapError("<b>The map couldn’t start.</b> This browser has graphics acceleration (WebGL) turned off. " +
+      "In Chrome: Settings → System → “Use graphics acceleration when available”, then relaunch.");
+    throw e;
+  }
+  map.on("error", (e) => console.warn("Map:", e.error?.message || e));
   map.addControl(new maplibregl.AttributionControl({
     compact: true,
     customAttribution: "Trees &amp; gardens: City of Portland",
