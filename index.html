@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Portland Grow Map</title>
+  <meta name="description" content="Find street-side fruit trees, front-yard gardens and community gardens in Portland, and leave notes for fellow foragers.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button id="toggle-panel" class="icon-btn" aria-controls="panel" aria-expanded="false" title="Filters">☰</button>
+    <h1>Portland Grow Map</h1>
+    <button id="add-spot" class="btn primary">+ Add a spot</button>
+  </header>
+
+  <aside id="panel" class="panel" aria-label="Filters">
+    <section>
+      <h2>Show</h2>
+      <label class="row"><input type="checkbox" id="layer-trees" checked> Street fruit trees <small>(city inventory)</small></label>
+      <label class="row"><input type="checkbox" id="layer-gardens" checked> Community gardens</label>
+      <label class="row"><input type="checkbox" id="layer-community" checked> Spots added by neighbours</label>
+      <label class="row"><input type="checkbox" id="show-ornamental"> Ornamental varieties <small>(rarely fruit)</small></label>
+      <label class="row"><input type="checkbox" id="only-pick"> Only “owner says pick”</label>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Fruit &amp; nuts</h2>
+        <span><button class="link" id="types-all">all</button> · <button class="link" id="types-none">none</button></span>
+      </div>
+      <div id="type-filters" class="type-grid"></div>
+    </section>
+
+    <section class="etiquette">
+      <h2>Picking etiquette</h2>
+      <ul>
+        <li>Only pick what hangs over the sidewalk or street. Never enter a yard.</li>
+        <li>Check the notes. If the owner asked people to leave it, leave it.</li>
+        <li>Take a share, not the lot. Leave some for the next person and the birds.</li>
+        <li>Don’t post names, house numbers, or anything about the people who live there.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Sources</h2>
+      <ul id="source-status" class="sources"></ul>
+      <p id="storage-mode" class="muted"></p>
+    </section>
+  </aside>
+
+  <main id="map" aria-label="Map"></main>
+  <div id="zoom-hint" class="hint" hidden>Zoom in to see street fruit trees</div>
+  <div id="add-hint" class="hint action" hidden>Tap the map where the tree or garden is <button class="link" id="cancel-add">cancel</button></div>
+
+  <section id="detail" class="sheet" hidden aria-live="polite">
+    <button class="icon-btn close" id="close-detail" aria-label="Close">✕</button>
+    <div id="detail-body"></div>
+  </section>
+
+  <dialog id="spot-dialog">
+    <form method="dialog" id="spot-form">
+      <h2>Add a spot</h2>
+      <p class="muted">Street-side only: something anyone can see from the sidewalk.</p>
+      <label>What is it?
+        <select name="kind" id="spot-kind">
+          <option value="tree">Fruit or nut tree</option>
+          <option value="yard">Front-yard garden</option>
+          <option value="garden">Community garden</option>
+        </select>
+      </label>
+      <label id="spot-type-wrap">Type
+        <select name="type" id="spot-type"></select>
+      </label>
+      <label>Short description <small>(no names or house numbers)</small>
+        <input name="name" maxlength="80" required placeholder="e.g. Big Italian plum by the bus stop">
+      </label>
+      <label>First note <small>(optional)</small>
+        <textarea name="body" maxlength="500" rows="3" placeholder="Is it ripe? Did the owner say anything?"></textarea>
+      </label>
+      <label>Owner’s wishes, if known
+        <select name="status">
+          <option value="info">Unknown</option>
+          <option value="pick">Owner says: please pick</option>
+          <option value="ask">Ask the owner first</option>
+          <option value="leave">Owner says: please leave it be</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button value="cancel" class="btn" formnovalidate>Cancel</button>
+        <button value="ok" class="btn primary">Add to map</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+  <script src="config.js"></script>
+  <script src="fruit-species.js"></script>
+  <script src="storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
