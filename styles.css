@@ -44,7 +44,7 @@ small, .muted { color: var(--muted); }
   overflow-y: auto; padding: 16px 16px 40px; background: var(--surface); border-right: 1px solid var(--line);
 }
 .panel section { margin-bottom: 22px; }
-.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 3px 0; cursor: pointer; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; padding: 3px 0; cursor: pointer; }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; }
 input[type=checkbox] { accent-color: var(--accent); margin: 0; flex: none; width: 15px; height: 15px; }
 

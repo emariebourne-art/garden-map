@@ -1,6 +1,6 @@
 # Portland Grow Map
 
-A map of fruit and nut trees, front-yard gardens and community gardens around Portland that anyone
+A map of fruit and nut trees, berry bushes, vines, herbs, front-yard gardens and community gardens around Portland that anyone
 can reach from the sidewalk. Visitors filter by what they want (plums, figs, hazelnuts…) and leave
 notes for each other: "owner says please pick", "ask first", "please leave it be", "ripe now".
 
@@ -27,6 +27,14 @@ left out, and how it can grow (OpenStreetMap, imagery, volunteers) is in
 
 So the app starts from trees the city has already identified on the ground. Every spot has a
 **Street View** link so a person can check it before walking over.
+
+### Trees, bushes, vines and plants
+
+Every type in `fruit-species.js` says what it grows on (`form`) and its everyday name (`one`), so
+the app says "Blueberry bush", "Grape vine" or "Apple tree" and words its buttons to match.
+The city data is all trees. Blueberries, raspberries, blackberries, currants and gooseberries,
+strawberries, grapes, hardy kiwi, rhubarb and herbs come from neighbours, and each appears in the
+filter list once someone has added one.
 
 ### Edible vs ornamental
 
@@ -127,20 +135,20 @@ To run the function's tests (no API key needed; [Deno](https://deno.com) require
 deno test supabase/functions/upload-photo/
 ```
 
-## Fixing the map: gone trees and wrong labels
+## Fixing the map: gone plants and wrong labels
 
-City records go out of date: trees get cut down, replaced, or were logged as the wrong species.
-Every pin has an **Is this right?** section:
+City records go out of date: trees get cut down, replaced, or were logged as the wrong species;
+neighbours' bushes and vines get dug up. Every pin has an **Is this right?** section:
 
 | Button | What happens |
 |---|---|
-| **Gone or cut down** | 2 reports → hidden from the map |
-| **Not a …** (pick the right kind, or "not a fruit or nut tree") | 2 votes for the same kind → relabelled; 2 "not a fruit tree" → hidden |
+| **Gone or cut down** (trees) / **Gone or dug up** (bushes, vines, plants) / **Gone** (gardens) | 2 reports → hidden from the map |
+| **Wrong kind of tree / bush / vine / plant** (pick the right one, or "nothing you can eat") | 2 votes for the same kind → relabelled; 2 "nothing you can eat" → hidden |
 | **Can't reach it from the sidewalk** | 2 reports → hidden |
 | **✓ Still here** | Cancels the problem reports made before it |
 
-A single report never hides anything; it shows as a grey ring on the pin. Hidden trees can be
-seen again with **Show trees reported gone**, so someone can confirm them. To undo a bad-faith
+A single report never hides anything; it shows as a grey ring on the pin. Hidden spots can be
+seen again with **Show spots reported gone**, so someone can confirm them. To undo a bad-faith
 report, set `hidden` to `true` on its row in `spot_reports`.
 
 Reports are stored separately from the city data, so they survive when you refresh `data/`.

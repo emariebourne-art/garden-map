@@ -34,7 +34,7 @@ const REASONS = [
   "offensive_text",  // insults, harassment, profanity visible in the image
   "identifiable_person", // a recognisable face
   "private_details", // readable house number, licence plate, street address, name, mail
-  "off_topic",       // not a plant, tree, fruit, nut or garden
+  "off_topic",       // not a plant, fruit, nut or garden
   "unclear",         // too dark/blurry to tell what it is
 ] as const;
 
@@ -48,10 +48,10 @@ export type Verdict = z.infer<typeof Verdict>;
 /** What moderate() returns: Claude's verdict, or "refused" when its safeguards declined to review. */
 export type Result = { allowed: boolean; reason: Verdict["reason"] | "refused"; message: string };
 
-export const SYSTEM = `You review photos that members of the public upload to "Portland Grow Map", a community map of fruit and nut trees and gardens that people can see from the sidewalk. Photos are shown publicly, next to a map pin.
+export const SYSTEM = `You review photos that members of the public upload to "Portland Grow Map", a community map of fruit and nut trees, berry bushes, vines, herbs and gardens that people can see from the sidewalk. Photos are shown publicly, next to a map pin.
 
 Decide whether the photo may be published. Publish it only if ALL of these hold:
-- It shows a plant, tree, fruit, nut, flower, vegetable, garden bed, community garden, or harvest. Signs about picking ("please take some", "do not pick") are welcome.
+- It shows a tree, bush, vine, herb or other plant, or fruit, nuts, flowers, vegetables, a garden bed, a community garden, or a harvest. Signs about picking ("please take some", "do not pick") are welcome.
 - No sexual content or nudity, no violence or gore, no hate symbols, no drug use, no insulting or harassing text.
 - No recognisable person. A distant figure, a hand holding fruit, or a person seen from behind is fine; a face you could recognise is not.
 - No private details someone could use to identify a home or person: readable house numbers, licence plates, street addresses, names, mail. Street signs at an intersection are fine.

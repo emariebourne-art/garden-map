@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Portland Grow Map</title>
-  <meta name="description" content="Find street-side fruit and nut trees, front-yard gardens and community gardens in Portland, and leave notes for fellow foragers.">
+  <meta name="description" content="Find street-side fruit and nut trees, berry bushes, vines, front-yard gardens and community gardens in Portland, and leave notes for fellow foragers.">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
   <header class="topbar">
@@ -20,8 +20,8 @@
       <h2>Show</h2>
       <label class="row"><input type="checkbox" id="only-season"> In season now <small id="season-month"></small></label>
       <label class="row"><input type="checkbox" id="only-pick"> Only “owner says pick”</label>
-      <label class="row"><input type="checkbox" id="only-sure"> Hide trees that may not fruit well</label>
-      <label class="row"><input type="checkbox" id="show-gone"> Show trees reported gone</label>
+      <label class="row"><input type="checkbox" id="only-sure"> Hide plants that may not fruit well</label>
+      <label class="row"><input type="checkbox" id="show-gone"> Show spots reported gone</label>
     </section>
 
     <section>
@@ -56,7 +56,7 @@
     <button id="locate" class="btn small" title="Show where I am">◎ Near me</button>
     <button id="satellite" class="btn small" aria-pressed="false">Satellite</button>
   </div>
-  <div id="add-hint" class="hint action" hidden>Tap the map where the tree or garden is <button class="link" id="cancel-add">cancel</button></div>
+  <div id="add-hint" class="hint action" hidden>Tap the map where it is <button class="link" id="cancel-add">cancel</button></div>
 
   <section id="detail" class="sheet" hidden aria-live="polite">
     <button class="icon-btn close" id="close-detail" aria-label="Close">✕</button>
@@ -69,7 +69,7 @@
       <p class="muted">Street-side only: something anyone can see from the sidewalk.</p>
       <label>What is it?
         <select name="kind" id="spot-kind">
-          <option value="tree">Fruit or nut tree</option>
+          <option value="tree">Fruit or nut tree, bush, vine or herb</option>
           <option value="yard">Front-yard garden</option>
           <option value="garden">Community garden</option>
         </select>
@@ -99,10 +99,10 @@
   </dialog>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="config.js?v=6"></script>
-  <script src="fruit-species.js?v=6"></script>
-  <script src="map-style.js?v=6"></script>
-  <script src="storage.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="config.js?v=8"></script>
+  <script src="fruit-species.js?v=8"></script>
+  <script src="map-style.js?v=8"></script>
+  <script src="storage.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

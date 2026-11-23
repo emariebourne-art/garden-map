@@ -53,6 +53,7 @@
   function inSeason(type) {
     const s = TYPES[type]?.season;
     if (!s) return false;
+    if (s === "Year-round") return true;
     const [a, b = a] = s.split("–").map((m) => MONTHS.indexOf(m.trim()));
     if (a < 0 || b < 0) return false;
     return a <= b ? thisMonth >= a && thisMonth <= b : thisMonth >= a || thisMonth <= b;
@@ -336,7 +337,9 @@
       id: s.id, kind: kind === "tree" ? "tree" : "garden", source: "community", lng: s.lng, lat: s.lat,
       name: s.name, type: kind === "tree" ? s.type : kind, fruiting: "yes", created_at: s.created_at,
     });
-    if (kind === "yard") state.counts.yard = (state.counts.yard || 0) + 1;
+    // Count community additions too, so bush, vine and herb types appear in the filters once added.
+    const type = kind === "tree" ? s.type : kind;
+    state.counts[type] = (state.counts[type] || 0) + 1;
   }
 
   // ---------------------------------------------------------------- filter panel
@@ -355,10 +358,11 @@
         <legend><label><input type="checkbox" data-group="${g}" checked>
           <span class="dot" style="background:${info.color}"></span>${esc(info.label)}</label></legend>
         <div class="type-grid">${items.map(([k, t, n]) => `
-          <label title="${esc(t.season ? "Ripe " + t.season : "")}"><input type="checkbox" data-type="${k}" checked>
+          <label title="${esc(t.season ? "Ripe " + t.season : "")}"><input type="checkbox" data-type="${k}" ${state.types.has(k) ? "checked" : ""}>
           ${esc(t.label)}<span class="count">${n ? n.toLocaleString() : ""}</span></label>`).join("")}
         </div></fieldset>`;
     }).join("");
+    syncGroupBoxes();
   }
   function syncGroupBoxes() {
     document.querySelectorAll("#type-filters [data-group]").forEach((g) => {
@@ -449,7 +453,7 @@
       ? `<p class="muted">Plots belong to the gardeners who tend them. Visit and admire; pick only where signs say it’s shared.</p>` : "";
 
     $("detail-body").innerHTML = `
-      <div class="kicker" style="color:${GROUPS[t.group]?.color}">${t.icon} ${esc(t.label)}${t.season ? " · ripe " + t.season : ""}</div>
+      <div class="kicker" style="color:${GROUPS[t.group]?.color}">${t.icon} ${esc(t.one || t.label)}${t.season ? " · " + (t.season === "Year-round" ? "year-round" : "ripe " + t.season) : ""}</div>
       <h3>${esc(f.name)}</h3>
       ${f.species ? `<div class="sub"><i>${esc(f.species)}</i></div>` : ""}
       ${facts.length ? `<div class="sub">${esc(facts.join(" · "))}</div>` : ""}
@@ -557,29 +561,37 @@
   }
 
   // ---------------------------------------------------------------- "Is this right?"
+  // "an apple tree", "a grape vine", "herbs"
+  const aName = (one) => {
+    const lower = one.toLowerCase();
+    return /s$/.test(lower) ? lower : (/^[aeiou]/.test(lower) ? "an " : "a ") + lower;
+  };
+
   function reviewHtml(f, rv) {
-    const thing = f.kind === "tree" ? "tree" : "garden";
+    const t = TYPES[typeOf(f)] || TYPES.other;
+    const thing = f.kind === "garden" ? "garden" : t.form || "plant";
     const lines = [];
     if (rv.removed) lines.push(`<b>Hidden from the map:</b> neighbours say this ${thing} is ${rv.unreachable >= rv.gone ? "can’t be reached from the sidewalk" : "gone"}. If it’s still there, say so below.`);
     else {
       if (rv.gone) lines.push(`${rv.gone} neighbour${rv.gone > 1 ? "s say" : " says"} this ${thing} is gone.`);
       if (rv.unreachable) lines.push(`${rv.unreachable} neighbour${rv.unreachable > 1 ? "s say" : " says"} it can’t be reached from the sidewalk.`);
     }
-    if (rv.type && rv.type !== f.type) lines.push(`Relabelled by neighbours: the city lists it as ${esc(TYPES[f.type]?.label || f.name)}.`);
+    if (rv.type && rv.type !== f.type) lines.push(`Relabelled by neighbours: ${f.source === "city" ? "the city lists it as" : "it was added as"} ${esc(aName(TYPES[f.type]?.one || f.name))}.`);
     for (const [k, n] of Object.entries(rv.votes)) if (k !== rv.type)
-      lines.push(`${n} neighbour${n > 1 ? "s think" : " thinks"} it’s actually ${esc(TYPES[k]?.label || k)}.`);
+      lines.push(`${n} neighbour${n > 1 ? "s think" : " thinks"} it’s actually ${esc(aName(TYPES[k]?.one || k))}.`);
     if (!lines.length && rv.lastConfirmed) lines.push(`A neighbour confirmed it’s here ${ago(rv.lastConfirmed)}.`);
 
     const typeOptions = Object.entries(TYPES).filter(([k, t]) => t.group !== "garden" && k !== typeOf(f))
-      .map(([k, t]) => `<option value="${k}">${esc(t.label)}</option>`).join("");
+      .map(([k, t]) => `<option value="${k}">${esc(t.one || t.label)}</option>`).join("");
+    const goneLabel = { tree: "Gone or cut down", garden: "Gone" }[thing] || "Gone or dug up";
     return `
       <section class="review">
         <h2>Is this right?</h2>
         ${lines.length ? `<p class="review-state small">${lines.join("<br>")}</p>` : ""}
         <div class="review-buttons" id="review-buttons">
           <button class="btn small" data-kind="still_here">✓ Still here</button>
-          <button class="btn small" data-kind="gone">Gone or cut down</button>
-          ${f.kind === "tree" ? `<button class="btn small" data-kind="wrong_type">Not a ${esc((TYPES[typeOf(f)]?.label || "this").toLowerCase())}</button>` : ""}
+          <button class="btn small" data-kind="gone">${goneLabel}</button>
+          ${f.kind === "tree" ? `<button class="btn small" data-kind="wrong_type">Wrong kind of ${thing}</button>` : ""}
           <button class="btn small" data-kind="unreachable">Can’t reach it from the sidewalk</button>
         </div>
         <form class="review-type" id="review-type" hidden>
@@ -587,7 +599,7 @@
             <select name="corrected">
               <option value="">Choose…</option>
               ${typeOptions}
-              <option value="none">Not a fruit or nut tree</option>
+              <option value="none">Nothing you can eat</option>
             </select></label>
           <div class="actions"><button type="button" class="btn small" id="review-type-cancel">Cancel</button>
             <button class="btn small primary">Send</button></div>
@@ -730,9 +742,10 @@
   $("close-detail").onclick = closeDetail;
 
   // ---------------------------------------------------------------- add a spot
-  $("spot-type").innerHTML = Object.entries(TYPES)
-    .filter(([, t]) => t.group !== "garden")
-    .map(([k, t]) => `<option value="${k}">${t.icon} ${t.label}</option>`).join("");
+  $("spot-type").innerHTML = Object.entries(GROUPS).filter(([g]) => g !== "garden").map(([g, info]) =>
+    `<optgroup label="${esc(info.label)}">` + Object.entries(TYPES).filter(([, t]) => t.group === g)
+      .sort((a, b) => (a[0] === "other") - (b[0] === "other") || a[1].one.localeCompare(b[1].one))
+      .map(([k, t]) => `<option value="${k}">${t.icon} ${esc(t.one)}</option>`).join("") + `</optgroup>`).join("");
   $("spot-kind").onchange = (e) => { $("spot-type-wrap").hidden = e.target.value !== "tree"; };
 
   let pendingLngLat = null;
@@ -769,7 +782,9 @@
     };
     try {
       const row = await store.addSpot(spot);
+      const isNewType = !state.counts[row.type];
       addCommunitySpot(row);
+      if (isNewType) buildFilters();
       state.types.add(row.type);
       const body = String(fd.get("body") || "").trim();
       const status = fd.get("status");
