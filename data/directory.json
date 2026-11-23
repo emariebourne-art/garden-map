@@ -1,0 +1,44 @@
+{
+ "built": "2026-11-23T22:11:22.284Z",
+ "counts": {
+  "crabapple": 7378,
+  "cherryplum": 7734,
+  "strawberrytree": 282,
+  "pear": 4573,
+  "cherry": 525,
+  "walnut": 2691,
+  "chokecherry": 609,
+  "cornelian": 551,
+  "hawthorn": 5706,
+  "apple": 2593,
+  "plum": 2531,
+  "pawpaw": 80,
+  "mountainash": 575,
+  "mulberry": 220,
+  "hazelnut": 935,
+  "fig": 1098,
+  "serviceberry": 1099,
+  "kousa": 1689,
+  "peach": 296,
+  "chestnut": 316,
+  "persimmon": 435,
+  "hickory": 46,
+  "asianpear": 258,
+  "olive": 264,
+  "other": 143,
+  "almond": 37,
+  "quince": 79,
+  "garden": 62
+ },
+ "minPerType": 20,
+ "sources": [
+  {
+   "name": "City of Portland tree inventory (Urban Forestry)",
+   "url": "https://www.portlandmaps.com/arcgis/rest/services/Public/Parks_UF_Tree_Layers/MapServer"
+  },
+  {
+   "name": "Portland Parks & Recreation Community Gardens",
+   "url": "https://www.portlandmaps.com/od/rest/services/COP_OpenData_Miscellaneous/MapServer/216"
+  }
+ ]
+}

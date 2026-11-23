@@ -4,10 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Portland Grow Map</title>
-  <meta name="description" content="Find street-side fruit trees, front-yard gardens and community gardens in Portland, and leave notes for fellow foragers.">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+  <meta name="description" content="Find street-side fruit and nut trees, front-yard gardens and community gardens in Portland, and leave notes for fellow foragers.">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,19 +18,17 @@
   <aside id="panel" class="panel" aria-label="Filters">
     <section>
       <h2>Show</h2>
-      <label class="row"><input type="checkbox" id="layer-trees" checked> Street fruit trees <small>(city inventory)</small></label>
-      <label class="row"><input type="checkbox" id="layer-gardens" checked> Community gardens</label>
-      <label class="row"><input type="checkbox" id="layer-community" checked> Spots added by neighbours</label>
-      <label class="row"><input type="checkbox" id="show-ornamental"> Ornamental varieties <small>(rarely fruit)</small></label>
+      <label class="row"><input type="checkbox" id="only-season"> In season now <small id="season-month"></small></label>
       <label class="row"><input type="checkbox" id="only-pick"> Only “owner says pick”</label>
+      <label class="row"><input type="checkbox" id="only-sure"> Hide trees that may not fruit well</label>
     </section>
 
     <section>
       <div class="section-head">
-        <h2>Fruit &amp; nuts</h2>
+        <h2>What to find</h2>
         <span><button class="link" id="types-all">all</button> · <button class="link" id="types-none">none</button></span>
       </div>
-      <div id="type-filters" class="type-grid"></div>
+      <div id="type-filters"></div>
     </section>
 
     <section class="etiquette">
@@ -41,19 +37,23 @@
         <li>Only pick what hangs over the sidewalk or street. Never enter a yard.</li>
         <li>Check the notes. If the owner asked people to leave it, leave it.</li>
         <li>Take a share, not the lot. Leave some for the next person and the birds.</li>
+        <li>Be sure what you’re eating. Some fruit needs cooking first.</li>
         <li>Don’t post names, house numbers, or anything about the people who live there.</li>
       </ul>
     </section>
 
     <section>
-      <h2>Sources</h2>
-      <ul id="source-status" class="sources"></ul>
-      <p id="storage-mode" class="muted"></p>
+      <h2>About the data</h2>
+      <p id="data-status" class="muted small">Loading…</p>
+      <p id="storage-mode" class="muted small"></p>
     </section>
   </aside>
 
   <main id="map" aria-label="Map"></main>
-  <div id="zoom-hint" class="hint" hidden>Zoom in to see street fruit trees</div>
+  <div class="map-buttons">
+    <button id="locate" class="btn small" title="Show where I am">◎ Near me</button>
+    <button id="satellite" class="btn small" aria-pressed="false">Satellite</button>
+  </div>
   <div id="add-hint" class="hint action" hidden>Tap the map where the tree or garden is <button class="link" id="cancel-add">cancel</button></div>
 
   <section id="detail" class="sheet" hidden aria-live="polite">
@@ -96,10 +96,10 @@
     </form>
   </dialog>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="config.js"></script>
   <script src="fruit-species.js"></script>
+  <script src="map-style.js"></script>
   <script src="storage.js"></script>
   <script src="app.js"></script>
 </body>
